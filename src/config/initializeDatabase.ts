@@ -16,6 +16,22 @@ export const initializeDatabase = async () => {
       pump: {
         mode: "manual",
         status: false
+      },
+      // Add sample device for testing
+      device_001: {
+        info: {
+          place: "Sample Location"
+        },
+        data: {
+          sample_reading: {
+            humidity: 65,
+            moisture: 2500,
+            temperature: 25,
+            timestamp: Date.now(),
+            formatted_time: new Date().toLocaleTimeString("en-GB", { hour12: false }),
+            place: "Sample Location"
+          }
+        }
       }
     };
 

@@ -9,6 +9,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  useTheme,
 } from "@mui/material";
 import {
   Info as InfoIcon,
@@ -19,6 +20,7 @@ import {
 } from "@mui/icons-material";
 
 const DocumentationPage: React.FC = () => {
+  const theme = useTheme();
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -55,6 +57,15 @@ const DocumentationPage: React.FC = () => {
                 <ListItemText
                   primary="Humidity Monitoring"
                   secondary="Real-time monitoring of air humidity levels with historical data visualization"
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <ThermostatIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Temperature Monitoring"
+                  secondary="Continuous temperature tracking with alerts for extreme conditions"
                 />
               </ListItem>
               <ListItem>
@@ -119,6 +130,12 @@ const DocumentationPage: React.FC = () => {
                 <ListItemText
                   primary="Humidity"
                   secondary="Optimal range: 40-80%"
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemText
+                  primary="Temperature"
+                  secondary="Optimal range: 15-30°C"
                 />
               </ListItem>
               <ListItem>

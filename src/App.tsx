@@ -7,6 +7,8 @@ import HumidityPage from "./pages/HumidityPage";
 import SoilMoisturePage from "./pages/SoilMoisturePage";
 import SettingsPage from "./pages/SettingsPage";
 import DocumentationPage from "./pages/DocumentationPage";
+import TemperaturePage from "./pages/TemperaturePage";
+import PumpPage from "./pages/PumpPage";
 import { DeviceProvider } from "./components/DeviceProvider";
 
 // Create a theme instance
@@ -48,7 +50,9 @@ const App: React.FC = () => {
                 />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/humidity" element={<HumidityPage />} />
+                <Route path="/temperature" element={<TemperaturePage />} />
                 <Route path="/soil-moisture" element={<SoilMoisturePage />} />
+                <Route path="/pump" element={<PumpPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/documentation" element={<DocumentationPage />} />
               </Routes>

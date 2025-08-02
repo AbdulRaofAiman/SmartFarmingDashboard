@@ -20,6 +20,9 @@ import {
   Opacity as SoilMoistureIcon,
   Settings as SettingsIcon,
   MenuBook as MenuBookIcon,
+  DeviceThermostat as TemperatureIcon,
+  Opacity as PumpIcon,
+  PowerSettingsNew as PumpSidebarIcon,
 } from "@mui/icons-material";
 
 const drawerWidth = 240;
@@ -27,7 +30,9 @@ const drawerWidth = 240;
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
   { text: "Humidity", icon: <WaterDropIcon />, path: "/humidity" },
+  { text: "Temperature", icon: <TemperatureIcon />, path: "/temperature" },
   { text: "Soil Moisture", icon: <SoilMoistureIcon />, path: "/soil-moisture" },
+  { text: "Pump", icon: <PumpSidebarIcon />, path: "/pump" },
   { text: "Settings", icon: <SettingsIcon />, path: "/settings" },
   { text: "Documentation", icon: <MenuBookIcon />, path: "/documentation" },
 ];

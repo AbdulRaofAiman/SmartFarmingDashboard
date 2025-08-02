@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback, memo } from "react";
+import * as React from "react";
 import {
   Box,
   Container,
@@ -12,7 +12,13 @@ import {
   useTheme,
   Button,
   Stack,
+  Card,
+  CardContent,
   TextField,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { ref, onValue, set, get, serverTimestamp } from "firebase/database";
@@ -37,8 +43,15 @@ import { _adapters } from "chart.js";
 import { initializeDatabase } from "../config/initializeDatabase";
 import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged } from "firebase/auth";
-import { PowerSettingsNew as PowerIcon, Circle } from "@mui/icons-material";
+import {
+  PowerSettingsNew,
+  Opacity,
+  DeviceHub,
+  Thermostat,
+  WaterDrop,
+} from "@mui/icons-material";
 import { useDevice } from "./DeviceProvider";
+import Grid from "@mui/material/Grid";
 
 // Register Chart.js components
 ChartJS.register(
@@ -113,13 +126,29 @@ interface SensorData {
   formatted_time: string;
 }
 
+const getStatusColor = (status: string, theme: any) => {
+  if (status === "normal") return "#43a047"; // Green
+  if (status === "warning") return "#ffa726"; // Orange
+  return "#e53935"; // Red
+};
+
 // Separate component for the chart
-const HumidityChart = memo(
-  ({ data, error }: { data: SensorData[]; error: string | null }) => {
+const HumidityChart = React.memo(
+  ({
+    data,
+    error,
+    threshold,
+  }: {
+    data: SensorData[];
+    error: string | null;
+    threshold: { min: number; max: number };
+  }) => {
     const theme = useTheme();
     const getStatus = (value: number) => {
-      if (value < 30) return "critical";
-      if (value < 50) return "warning";
+      if (!threshold?.max) return "normal";
+      const percentage = (value / threshold.max) * 100;
+      if (percentage > 97) return "critical";
+      if (percentage > 90) return "warning";
       return "normal";
     };
 
@@ -132,19 +161,12 @@ const HumidityChart = memo(
         {
           label: "Humidity (%)",
           data: data.map((d) => d.value),
-          borderColor: theme.palette.primary.main,
-          backgroundColor: theme.palette.primary.light + "40",
+          borderColor: getStatusColor(status, theme),
+          backgroundColor: getStatusColor(status, theme) + "22",
           tension: 0.4,
-          fill: true,
-          pointBackgroundColor: data.map((d) =>
-            getStatus(d.value) === "normal"
-              ? theme.palette.success.main
-              : getStatus(d.value) === "warning"
-              ? theme.palette.warning.main
-              : theme.palette.error.main
-          ),
-          pointRadius: 4,
+          pointRadius: 0,
           pointHoverRadius: 6,
+          fill: true,
         },
       ],
     };
@@ -259,12 +281,22 @@ const HumidityChart = memo(
 HumidityChart.displayName = "HumidityChart";
 
 // Separate component for soil moisture chart
-const SoilMoistureChart = memo(
-  ({ data, error }: { data: SensorData[]; error: string | null }) => {
+const SoilMoistureChart = React.memo(
+  ({
+    data,
+    error,
+    threshold,
+  }: {
+    data: SensorData[];
+    error: string | null;
+    threshold: { min: number; max: number };
+  }) => {
     const theme = useTheme();
     const getStatus = (value: number) => {
-      if (value < 20) return "critical";
-      if (value < 40) return "warning";
+      if (!threshold?.max) return "normal";
+      const percentage = (value / threshold.max) * 100;
+      if (percentage > 97) return "critical";
+      if (percentage > 90) return "warning";
       return "normal";
     };
 
@@ -275,21 +307,14 @@ const SoilMoistureChart = memo(
       labels: data.map((d) => d.formatted_time),
       datasets: [
         {
-          label: "Soil Moisture (%)",
+          label: "Soil Moisture (raw value)",
           data: data.map((d) => d.value),
-          borderColor: theme.palette.secondary.main,
-          backgroundColor: theme.palette.secondary.light + "40",
+          borderColor: getStatusColor(status, theme),
+          backgroundColor: getStatusColor(status, theme) + "22",
           tension: 0.4,
-          fill: true,
-          pointBackgroundColor: data.map((d) =>
-            getStatus(d.value) === "normal"
-              ? theme.palette.success.main
-              : getStatus(d.value) === "warning"
-              ? theme.palette.warning.main
-              : theme.palette.error.main
-          ),
-          pointRadius: 4,
+          pointRadius: 0,
           pointHoverRadius: 6,
+          fill: true,
         },
       ],
     };
@@ -403,39 +428,236 @@ const SoilMoistureChart = memo(
 
 SoilMoistureChart.displayName = "SoilMoistureChart";
 
+const TemperatureChart = React.memo(
+  ({
+    data,
+    error,
+    threshold,
+  }: {
+    data: SensorData[];
+    error: string | null;
+    threshold: { min: number; max: number };
+  }) => {
+    const theme = useTheme();
+    const getStatus = (value: number) => {
+      if (!threshold?.max) return "normal";
+      const percentage = (value / threshold.max) * 100;
+      if (percentage > 97) return "critical";
+      if (percentage > 90) return "warning";
+      return "normal";
+    };
+
+    const latestValue = data.length > 0 ? data[data.length - 1].value : 0;
+    const status = getStatus(latestValue);
+
+    const chartData = {
+      labels: data.map((d) => d.formatted_time),
+      datasets: [
+        {
+          label: "Temperature (°C)",
+          data: data.map((d) => d.value),
+          borderColor: getStatusColor(status, theme),
+          backgroundColor: getStatusColor(status, theme) + "22",
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          fill: true,
+        },
+      ],
+    };
+
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: {
+        duration: 750,
+        easing: "easeInOutQuad" as const,
+      },
+      interaction: {
+        intersect: false,
+        mode: "index" as const,
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          grid: {
+            color: theme.palette.divider,
+          },
+          title: {
+            display: true,
+            text: "Temperature (°C)",
+            color: theme.palette.text.secondary,
+          },
+        },
+        x: {
+          grid: {
+            color: theme.palette.divider,
+          },
+          title: {
+            display: true,
+            text: "Time",
+            color: theme.palette.text.secondary,
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          backgroundColor: theme.palette.background.paper,
+          titleColor: theme.palette.text.primary,
+          bodyColor: theme.palette.text.secondary,
+          borderColor: theme.palette.divider,
+          borderWidth: 1,
+          padding: 12,
+          boxPadding: 6,
+          usePointStyle: true,
+          callbacks: {
+            label: (context: any) => {
+              const value = context.raw;
+              const status = getStatus(value);
+              return [
+                `Temperature: ${value}°C`,
+                `Status: ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+              ];
+            },
+          },
+        },
+      },
+    };
+
+    return (
+      <Item elevation={2}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <StatusIndicator status={getStatus(latestValue)} />
+          <Typography variant="h6" color="textPrimary">
+            Temperature History
+          </Typography>
+          <Typography
+            variant="h6"
+            color={
+              getStatus(latestValue) === "normal"
+                ? "success.main"
+                : getStatus(latestValue) === "warning"
+                ? "warning.main"
+                : "error.main"
+            }
+            sx={{ ml: "auto" }}
+          >
+            {latestValue}°C
+          </Typography>
+        </Box>
+        <ChartContainer>
+          <Line data={chartData} options={chartOptions} />
+          {error && (
+            <Typography
+              color="error"
+              sx={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                backgroundColor: "rgba(255, 255, 255, 0.9)",
+                padding: 1,
+                borderRadius: 1,
+              }}
+            >
+              {error}
+            </Typography>
+          )}
+        </ChartContainer>
+      </Item>
+    );
+  }
+);
+
+TemperatureChart.displayName = "TemperatureChart";
+
 export function Dashboard() {
+  const theme = useTheme();
   const { devices, selectedDevice, setSelectedDevice } = useDevice();
-  const [soilMoisture, setSoilMoisture] = useState<number>(0);
-  const [humidity, setHumidity] = useState<number>(0);
-  const [pumpMode, setPumpMode] = useState<"auto" | "manual">("manual");
-  const [pumpStatus, setPumpStatus] = useState<boolean | "on" | "off" | "auto">(
-    false
-  );
-  const [soilMoistureHistory, setSoilMoistureHistory] = useState<SensorData[]>(
+  const [soilMoisture, setSoilMoisture] = React.useState<number>(0);
+  const [humidity, setHumidity] = React.useState<number>(0);
+  const [pumpMode, setPumpMode] = React.useState<"auto" | "manual">("manual");
+  const [pumpStatus, setPumpStatus] = React.useState<
+    boolean | "on" | "off" | "auto"
+  >(false);
+  const [soilMoistureHistory, setSoilMoistureHistory] = React.useState<
+    SensorData[]
+  >([]);
+  const [humidityHistory, setHumidityHistory] = React.useState<SensorData[]>(
     []
   );
-  const [humidityHistory, setHumidityHistory] = useState<SensorData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const soilMoistureChartRef = useRef<ChartJS<"line"> | null>(null);
-  const humidityChartRef = useRef<ChartJS<"line"> | null>(null);
-  const chartContainerRef = useRef<HTMLCanvasElement>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const mountedRef = useRef(true);
-  const humidityRef = useRef(ref(database, "humidity"));
-  const humidityUnsubscribeRef = useRef<(() => void) | null>(null);
-  const [humidityData, setHumidityData] = useState<SensorData[]>([]);
-  const [soilMoistureData, setSoilMoistureData] = useState<SensorData[]>([]);
-  const soilMoistureRef = useRef(ref(database, "soilMoisture"));
-  const soilMoistureUnsubscribeRef = useRef<(() => void) | null>(null);
-  const [isManualMode, setIsManualMode] = useState(false);
-  const [manualPumpStatus, setManualPumpStatus] = useState<"on" | "off">("off");
-  const [deviceData, setDeviceData] = useState<any[]>([]);
-  const [deviceHumidity, setDeviceHumidity] = useState<SensorData[]>([]);
-  const [deviceMoisture, setDeviceMoisture] = useState<SensorData[]>([]);
-  const [deviceLocation, setDeviceLocation] = useState("");
-  const [editLocation, setEditLocation] = useState("");
-  const [savingLocation, setSavingLocation] = useState(false);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const soilMoistureChartRef = React.useRef<ChartJS<"line"> | null>(null);
+  const humidityChartRef = React.useRef<ChartJS<"line"> | null>(null);
+  const chartContainerRef = React.useRef<HTMLCanvasElement>(null);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const mountedRef = React.useRef(true);
+  const humidityRef = React.useRef(ref(database, "humidity"));
+  const humidityUnsubscribeRef = React.useRef<(() => void) | null>(null);
+  const [humidityData, setHumidityData] = React.useState<SensorData[]>([]);
+  const [soilMoistureData, setSoilMoistureData] = React.useState<SensorData[]>(
+    []
+  );
+  const soilMoistureRef = React.useRef(ref(database, "soilMoisture"));
+  const soilMoistureUnsubscribeRef = React.useRef<(() => void) | null>(null);
+  const [isManualMode, setIsManualMode] = React.useState(false);
+  const [manualPumpStatus, setManualPumpStatus] = React.useState<"on" | "off">(
+    "off"
+  );
+  const [deviceData, setDeviceData] = React.useState<any[]>([]);
+  const [deviceHumidity, setDeviceHumidity] = React.useState<SensorData[]>([]);
+  const [deviceMoisture, setDeviceMoisture] = React.useState<SensorData[]>([]);
+  const [deviceTemperature, setDeviceTemperature] = React.useState<
+    SensorData[]
+  >([]);
+  const [devicePlace, setDevicePlace] = React.useState<string>("");
+  const [placeInput, setPlaceInput] = React.useState<string>("");
+  const [placeSaving, setPlaceSaving] = React.useState<boolean>(false);
+  const [isOnline, setIsOnline] = React.useState(false);
+  const latestFormattedTimeRef = React.useRef<string | null>(null);
+  const [pumps, setPumps] = React.useState({});
+  const [deviceList, setDeviceList] = React.useState([]);
+
+  // Fetch all pumps from Firebase
+  React.useEffect(() => {
+    const pumpRef = ref(database, "Pump");
+    const unsubscribe = onValue(pumpRef, (snapshot) => {
+      const data = snapshot.val();
+      setPumps(data || {});
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch all devices for device dropdown
+  React.useEffect(() => {
+    const deviceRef = ref(database, "/");
+    const unsubscribe = onValue(deviceRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setDeviceList(
+          Object.keys(data).filter((key) => key.startsWith("device_"))
+        );
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const [humidityThreshold, setHumidityThreshold] = React.useState({
+    min: 40,
+    max: 80,
+  });
+  const [soilMoistureThreshold, setSoilMoistureThreshold] = React.useState({
+    min: 1800,
+    max: 3000,
+  });
+  const [temperatureThreshold, setTemperatureThreshold] = React.useState({
+    min: 0,
+    max: 60,
+  });
 
   const chartOptions = {
     responsive: true,
@@ -461,7 +683,7 @@ export function Dashboard() {
     },
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Set mounted ref to true when component mounts
     mountedRef.current = true;
 
@@ -804,7 +1026,7 @@ export function Dashboard() {
     initializeDashboard();
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const cleanup = () => {
       if (soilMoistureChartRef.current) {
         soilMoistureChartRef.current.destroy();
@@ -821,6 +1043,25 @@ export function Dashboard() {
 
     return cleanup;
   }, [soilMoistureHistory, humidityHistory]);
+
+  React.useEffect(() => {
+    const settingsRef = ref(database, "settings");
+    const unsubscribe = onValue(settingsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const settings = snapshot.val();
+        if (settings.humidityThreshold) {
+          setHumidityThreshold(settings.humidityThreshold);
+        }
+        if (settings.soilMoistureThreshold) {
+          setSoilMoistureThreshold(settings.soilMoistureThreshold);
+        }
+        if (settings.temperatureThreshold) {
+          setTemperatureThreshold(settings.temperatureThreshold);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handlePumpToggle = async () => {
     if (!isManualMode) return;
@@ -863,7 +1104,7 @@ export function Dashboard() {
   };
 
   // Update the pump status subscription
-  useEffect(() => {
+  React.useEffect(() => {
     const pumpRef = ref(database, "pump");
     const pumpUnsubscribe = onValue(
       pumpRef,
@@ -1002,8 +1243,19 @@ export function Dashboard() {
     }
   };
 
+  const MemoizedLine = React.memo(Line);
+
+  const handleDeviceChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    const newValue = event.target.value as string;
+    console.log("Device selection changed:", {
+      newValue,
+      currentDevices: devices,
+    });
+    setSelectedDevice(newValue);
+  };
+
   // Fetch data for selected device
-  useEffect(() => {
+  React.useEffect(() => {
     if (!selectedDevice) return;
     const dataRef = ref(database, `${selectedDevice}/data`);
     const unsubscribe = onValue(
@@ -1014,6 +1266,7 @@ export function Dashboard() {
           setDeviceData([]);
           setDeviceHumidity([]);
           setDeviceMoisture([]);
+          setDeviceTemperature([]);
           return;
         }
         // Convert object to array and sort by timestamp
@@ -1021,8 +1274,10 @@ export function Dashboard() {
           .map((entry: any) => ({
             humidity: entry.humidity,
             moisture: entry.moisture,
+            temperature: entry.temperature,
             timestamp: entry.timestamp,
             formatted_time: entry.formatted_time,
+            place: entry.place,
           }))
           .sort((a, b) => a.timestamp - b.timestamp);
         setDeviceData(arr);
@@ -1040,6 +1295,21 @@ export function Dashboard() {
             formatted_time: d.formatted_time,
           }))
         );
+        setDeviceTemperature(
+          arr.map((d) => ({
+            value: d.temperature,
+            timestamp: d.timestamp,
+            formatted_time: d.formatted_time,
+          }))
+        );
+        // 取最新的 place 字段
+        const latestPlace = arr.length > 0 ? arr[arr.length - 1].place : "";
+        setDevicePlace(latestPlace);
+        setPlaceInput(latestPlace);
+        const latestTimestamp =
+          arr.length > 0 ? arr[arr.length - 1].timestamp : null;
+        latestFormattedTimeRef.current =
+          arr.length > 0 ? arr[arr.length - 1].formatted_time : null;
       },
       (error) => {
         setError("Failed to fetch device data: " + error.message);
@@ -1048,28 +1318,66 @@ export function Dashboard() {
     return () => unsubscribe();
   }, [selectedDevice]);
 
-  // Fetch device location when selectedDevice changes
-  useEffect(() => {
+  // Real-time status checker
+  React.useEffect(() => {
+    const timeStringToSeconds = (timeStr: string): number => {
+      if (!timeStr || !/^\d{2}:\d{2}:\d{2}$/.test(timeStr)) return 0;
+      const [hours, minutes, seconds] = timeStr.split(":").map(Number);
+      return hours * 3600 + minutes * 60 + seconds;
+    };
+
+    const interval = setInterval(() => {
+      const lastFormattedTime = latestFormattedTimeRef.current;
+
+      if (lastFormattedTime) {
+        const now = new Date();
+        const currentTimeString = now.toLocaleTimeString("en-GB", {
+          hour12: false,
+        });
+
+        const lastSeconds = timeStringToSeconds(lastFormattedTime);
+        const currentSeconds = timeStringToSeconds(currentTimeString);
+
+        let diff = Math.abs(currentSeconds - lastSeconds);
+        // Handle midnight crossover
+        const secondsInDay = 86400;
+        if (diff > secondsInDay / 2) {
+          diff = secondsInDay - diff;
+        }
+
+        setIsOnline(diff < 7);
+      } else {
+        setIsOnline(false);
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch device info (place) from /info
+  React.useEffect(() => {
     if (!selectedDevice) return;
     const infoRef = ref(database, `${selectedDevice}/info/place`);
     const unsubscribe = onValue(infoRef, (snapshot) => {
       const place = snapshot.val();
-      setDeviceLocation(place || "");
-      setEditLocation(place || "");
+      setDevicePlace(place || "");
+      setPlaceInput(place || "");
     });
     return () => unsubscribe();
   }, [selectedDevice]);
 
-  // Save device location
-  const handleSaveLocation = async () => {
+  // Save place to /info/place
+  const handlePlaceSave = async () => {
     if (!selectedDevice) return;
-    setSavingLocation(true);
+    setPlaceSaving(true);
     try {
       const infoRef = ref(database, `${selectedDevice}/info/place`);
-      await set(infoRef, editLocation);
-      setDeviceLocation(editLocation);
+      await set(infoRef, placeInput);
+      setDevicePlace(placeInput);
+    } catch (e) {
+      setError("Failed to update device location");
     } finally {
-      setSavingLocation(false);
+      setPlaceSaving(false);
     }
   };
 
@@ -1087,13 +1395,6 @@ export function Dashboard() {
     deviceData.length > 0
       ? deviceData[deviceData.length - 1].formatted_time
       : null;
-
-  let isOnline = false;
-  if (latestFormattedTime) {
-    const nowSeconds = timeStringToSeconds(malaysiaNow);
-    const latestSeconds = timeStringToSeconds(latestFormattedTime);
-    isOnline = Math.abs(nowSeconds - latestSeconds) < 3;
-  }
 
   if (loading) {
     return (
@@ -1127,133 +1428,191 @@ export function Dashboard() {
     );
   }
 
-  return (
-    <Box sx={{ p: 3 }}>
-      <Container maxWidth="xl">
-        {/* Device Selection Dropdown with Online/Offline Indicator */}
-        <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 2 }}>
-          <Typography variant="h6">Select Device:</Typography>
-          <select
-            value={selectedDevice}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setSelectedDevice(e.target.value)
-            }
-            style={{ fontSize: "1rem", padding: "0.5rem 1rem" }}
-          >
-            {devices.map((device: string) => (
-              <option key={device} value={device}>
-                {device}
-              </option>
-            ))}
-          </select>
-        </Box>
-        {/* Device Location Display and Edit */}
-        <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 2 }}>
-          <Typography variant="h6">Device Location:</Typography>
-          <TextField
-            value={editLocation}
-            onChange={(e) => setEditLocation(e.target.value)}
-            size="small"
-            sx={{ minWidth: 200 }}
-            disabled={savingLocation}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSaveLocation}
-            disabled={savingLocation || editLocation === deviceLocation}
-          >
-            {savingLocation ? "Saving..." : "Save"}
-          </Button>
-        </Box>
-        {/* Online/Offline Status Indicator */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <Typography variant="h6">Status:</Typography>
-          <Circle sx={{ color: isOnline ? "green" : "red", fontSize: 16 }} />
-          <Typography variant="body1" color={isOnline ? "green" : "red"}>
-            {isOnline ? "Online" : "Offline"}
+  // Device Selector
+  const DeviceSelector = () => {
+    console.log("DeviceSelector render:", { devices, selectedDevice });
+    return (
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          flexWrap: "wrap",
+        }}
+      >
+      <Typography variant="h6" sx={{ minWidth: 120 }}>
+        <DeviceHub sx={{ mr: 1 }} />
+        Select Device:
+      </Typography>
+      <FormControl sx={{ minWidth: 250 }}>
+        <InputLabel id="device-select-label">Device</InputLabel>
+        <Select
+          labelId="device-select-label"
+          value={selectedDevice}
+          label="Device"
+          onChange={handleDeviceChange}
+          disabled={devices.length === 0}
+          MenuProps={{
+            PaperProps: {
+              sx: {
+                maxHeight: 300,
+              },
+            },
+          }}
+        >
+          {devices.length === 0 ? (
+            <MenuItem value="" disabled>
+              <em>No devices available</em>
+            </MenuItem>
+          ) : (
+            <>
+              <MenuItem value="">
+                <em>Select a device</em>
+              </MenuItem>
+              {devices.map((device: string) => (
+                <MenuItem key={device} value={device}>
+                  {device}
+                </MenuItem>
+              ))}
+            </>
+          )}
+        </Select>
+      </FormControl>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          Available devices: {devices.length} | Selected:{" "}
+          {selectedDevice || "None"}
+        </Typography>
+        {devices.length === 0 && (
+          <Typography variant="body2" color="error.main">
+            No devices found. Please check your database connection or add
+            devices.
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+
+  // Thresholds Card
+  const ThresholdsCard = () => (
+    <Card sx={{ minWidth: 300, mb: 2 }}>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Thresholds
+        </Typography>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Typography variant="body2">
+            Soil Moisture: {soilMoistureThreshold.min} -{" "}
+            {soilMoistureThreshold.max}
+          </Typography>
+          <Typography variant="body2">
+            Humidity: {humidityThreshold.min} - {humidityThreshold.max}
+          </Typography>
+          <Typography variant="body2">
+            Temperature: {temperatureThreshold.min} - {temperatureThreshold.max}
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {/* Current Readings */}
-          <Item>
-            <Typography variant="h6">Soil Moisture</Typography>
-            <Typography variant="h3">
-              {deviceMoisture.length > 0
-                ? deviceMoisture[deviceMoisture.length - 1].value
-                : 0}
-            </Typography>
-          </Item>
-          <Item>
-            <Typography variant="h6">Humidity</Typography>
-            <Typography variant="h3">
-              {deviceHumidity.length > 0
-                ? deviceHumidity[deviceHumidity.length - 1].value + "%"
-                : "0%"}
-            </Typography>
-          </Item>
+      </CardContent>
+    </Card>
+  );
 
-          {/* Charts */}
-          <Box sx={{ gridColumn: { xs: "1", md: "span 2" } }}>
-            <Item>
-              <Typography variant="h6">Soil Moisture History</Typography>
-              <SoilMoistureChart data={deviceMoisture} error={error} />
-            </Item>
-          </Box>
-          <Box sx={{ gridColumn: { xs: "1", md: "span 2" } }}>
-            <Item>
-              <Typography variant="h6">Humidity History</Typography>
-              <HumidityChart data={deviceHumidity} error={error} />
-            </Item>
-          </Box>
-
-          {/* AI Recommendations and Pump Control below the graphs */}
-          <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", mt: 3 }}>
-            <Item
-              sx={{
-                flex: 1,
-                minHeight: 220,
-                p: 4,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <Typography variant="h5" color="textPrimary">
-                  Pump Control
-                </Typography>
-              </Box>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={isManualMode}
-                    onChange={handleModeToggle}
-                    color="primary"
-                  />
-                }
-                label={<span style={{ fontSize: "1.2rem" }}>Manual Mode</span>}
-              />
-              {isManualMode && (
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={manualPumpStatus === "on"}
-                      onChange={handlePumpToggle}
-                      color="secondary"
-                    />
-                  }
-                  label={
-                    <span
-                      style={{ fontSize: "1.2rem" }}
-                    >{`Pump: ${manualPumpStatus.toUpperCase()}`}</span>
-                  }
-                />
-              )}
-            </Item>
-          </Box>
+  // Sensor Data Cards
+  const SensorCard = ({ icon, label, value, unit, color }: any) => (
+    <Card sx={{ minWidth: 180, mb: 2 }}>
+      <CardContent>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          {icon}
+          <Typography variant="h6" sx={{ ml: 1 }}>
+            {label}
+          </Typography>
         </Box>
+        <Typography variant="h4" color={color}>
+          {value}
+          {unit}
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <Box
+      sx={{ minHeight: "100vh", background: theme.palette.background.default }}
+    >
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography variant="h3" align="center" sx={{ fontWeight: 700, mb: 4 }}>
+          IoT Farm Monitoring Dashboard
+        </Typography>
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+          <DeviceSelector />
+        </Box>
+        <Grid container spacing={10} sx={{ mb: 3 }}>
+          <Grid item xs={12} md={3}>
+            <ThresholdsCard />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <SensorCard
+              icon={<Opacity color="primary" />}
+              label="Soil Moisture"
+              value={
+                deviceMoisture.length > 0
+                  ? deviceMoisture[deviceMoisture.length - 1].value
+                  : 0
+              }
+              unit=""
+              color="primary"
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <SensorCard
+              icon={<WaterDrop color="info" />}
+              label="Humidity"
+              value={
+                deviceHumidity.length > 0
+                  ? deviceHumidity[deviceHumidity.length - 1].value
+                  : 0
+              }
+              unit="%"
+              color="info"
+            />
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <SensorCard
+              icon={<Thermostat color="error" />}
+              label="Temperature"
+              value={
+                deviceTemperature.length > 0
+                  ? deviceTemperature[deviceTemperature.length - 1].value
+                  : 0
+              }
+              unit="°C"
+              color="error"
+            />
+          </Grid>
+        </Grid>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <SoilMoistureChart
+              data={deviceMoisture}
+              error={error}
+              threshold={soilMoistureThreshold}
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <HumidityChart
+              data={deviceHumidity}
+              error={error}
+              threshold={humidityThreshold}
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TemperatureChart
+              data={deviceTemperature}
+              error={error}
+              threshold={temperatureThreshold}
+            />
+          </Grid>
+        </Grid>
       </Container>
     </Box>
   );

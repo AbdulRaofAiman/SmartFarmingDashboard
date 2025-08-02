@@ -28,7 +28,6 @@ interface Settings {
     min: number;
     max: number;
   };
-  autoMode: boolean;
 }
 
 const SettingsPage: React.FC = () => {
@@ -37,7 +36,6 @@ const SettingsPage: React.FC = () => {
     humidityThreshold: { min: 40, max: 80 },
     temperatureThreshold: { min: 15, max: 30 },
     soilMoistureThreshold: { min: 30, max: 70 },
-    autoMode: true,
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -48,7 +46,9 @@ const SettingsPage: React.FC = () => {
       settingsRef,
       (snapshot) => {
         if (snapshot.exists()) {
-          setSettings(snapshot.val());
+          // Remove autoMode if present in the database
+          const { autoMode, ...rest } = snapshot.val();
+          setSettings(rest);
         }
       },
       (error) => {
@@ -128,6 +128,39 @@ const SettingsPage: React.FC = () => {
               </Box>
             </Box>
 
+            {/* Temperature Thresholds */}
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>
+                Temperature Thresholds (°C)
+              </Typography>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <TextField
+                  label="Min"
+                  type="number"
+                  value={settings.temperatureThreshold.min}
+                  onChange={(e) =>
+                    handleChange("temperatureThreshold", {
+                      ...settings.temperatureThreshold,
+                      min: Number(e.target.value),
+                    })
+                  }
+                  fullWidth
+                />
+                <TextField
+                  label="Max"
+                  type="number"
+                  value={settings.temperatureThreshold.max}
+                  onChange={(e) =>
+                    handleChange("temperatureThreshold", {
+                      ...settings.temperatureThreshold,
+                      max: Number(e.target.value),
+                    })
+                  }
+                  fullWidth
+                />
+              </Box>
+            </Box>
+
             {/* Soil Moisture Thresholds */}
             <Box>
               <Typography variant="subtitle1" gutterBottom>
@@ -164,19 +197,10 @@ const SettingsPage: React.FC = () => {
 
           <Alert severity="info">
             Changing these thresholds will affect the status cards on the
-            Humidity and Soil Moisture monitoring pages.
+            Humidity, Temperature, and Soil Moisture monitoring pages.
           </Alert>
 
-          <FormControlLabel
-            control={
-              <Switch
-                checked={settings.autoMode}
-                onChange={(e) => handleChange("autoMode", e.target.checked)}
-                color="primary"
-              />
-            }
-            label="Automatic Mode"
-          />
+          {/* Removed Automatic Mode Switch */}
 
           <Button
             variant="contained"
