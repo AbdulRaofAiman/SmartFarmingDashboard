@@ -29,29 +29,19 @@ export function Dashboard() {
     setSelectedDevice(event.target.value);
   };
 
-  const handleLocationChange = (event: SelectChangeEvent) => {
-    const newLocation = event.target.value;
-    setSelectedLocation(newLocation);
-    setLocationInput(newLocation);
-    
-    // 保存位置到Firebase
-    if (selectedDevice) {
-      const locationRef = ref(database, `${selectedDevice}/location`);
-      set(locationRef, newLocation);
-    }
-  };
-
   const handleLocationInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setLocationInput(event.target.value);
   };
 
   const handleSaveLocation = () => {
-    setSelectedLocation(locationInput);
-    
-    // 保存位置到Firebase
-    if (selectedDevice) {
-      const locationRef = ref(database, `${selectedDevice}/location`);
-      set(locationRef, locationInput);
+    if (locationInput.trim()) {
+      setSelectedLocation(locationInput.trim());
+      
+      // Save location to Firebase
+      if (selectedDevice) {
+        const locationRef = ref(database, `${selectedDevice}/location`);
+        set(locationRef, locationInput.trim());
+      }
     }
   };
 
@@ -61,7 +51,7 @@ export function Dashboard() {
     const dataRef = ref(database, `${selectedDevice}/data`);
     const locationRef = ref(database, `${selectedDevice}/location`);
     
-    // 监听传感器数据
+    // Listen for sensor data
     const dataUnsubscribe = onValue(
       dataRef,
       (snapshot) => {
@@ -84,7 +74,7 @@ export function Dashboard() {
       }
     );
 
-    // 监听位置数据
+    // Listen for location data
     const locationUnsubscribe = onValue(
       locationRef,
       (snapshot) => {
@@ -140,42 +130,24 @@ export function Dashboard() {
               </Select>
             </FormControl>
 
-            <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel id="location-select-label">Location</InputLabel>
-              <Select
-                labelId="location-select-label"
-                id="location-select"
-                value={selectedLocation}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+              <TextField
                 label="Location"
-                onChange={handleLocationChange}
+                value={locationInput}
+                onChange={handleLocationInputChange}
+                placeholder="Enter device location"
+                size="small"
+                sx={{ minWidth: 200 }}
+              />
+              <Button 
+                variant="contained" 
+                onClick={handleSaveLocation}
+                size="small"
+                disabled={!locationInput.trim()}
               >
-                <MenuItem value="Field A">Field A</MenuItem>
-                <MenuItem value="Field B">Field B</MenuItem>
-                <MenuItem value="Field C">Field C</MenuItem>
-                <MenuItem value="Greenhouse 1">Greenhouse 1</MenuItem>
-                <MenuItem value="Greenhouse 2">Greenhouse 2</MenuItem>
-                <MenuItem value="Custom">Custom Location</MenuItem>
-              </Select>
-            </FormControl>
-
-            {selectedLocation === "Custom" && (
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-                <TextField
-                  label="Custom Location"
-                  value={locationInput}
-                  onChange={handleLocationInputChange}
-                  size="small"
-                  sx={{ minWidth: 150 }}
-                />
-                <Button 
-                  variant="contained" 
-                  onClick={handleSaveLocation}
-                  size="small"
-                >
-                  Save
-                </Button>
-              </Box>
-            )}
+                Save
+              </Button>
+            </Box>
           </Box>
           
           {selectedDevice && (
