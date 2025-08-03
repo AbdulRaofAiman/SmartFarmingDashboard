@@ -1,9 +1,9 @@
-import React from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { ref, onValue } from "firebase/database";
 import { database } from "../config/firebase";
 import { DeviceContextType } from "../types/DeviceContext";
 
-const DeviceContext = React.createContext<DeviceContextType | undefined>(
+const DeviceContext = createContext<DeviceContextType | undefined>(
   undefined
 );
 
@@ -12,10 +12,11 @@ interface DeviceProviderProps {
 }
 
 export const DeviceProvider: React.FC<DeviceProviderProps> = ({ children }) => {
-  const [devices, setDevices] = React.useState<string[]>([]);
-  const [selectedDevice, setSelectedDevice] = React.useState<string>("");
+  const [devices, setDevices] = useState<string[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<string>("");
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
 
-  React.useEffect(() => {
+  useEffect(() => {
     const rootRef = ref(database, "/");
     const unsubscribe = onValue(rootRef, (snapshot) => {
       const data = snapshot.val();
@@ -24,7 +25,7 @@ export const DeviceProvider: React.FC<DeviceProviderProps> = ({ children }) => {
           key.startsWith("device_")
         );
         setDevices(deviceKeys);
-        setSelectedDevice((prev) => (prev ? prev : deviceKeys[0] || ""));
+        setSelectedDevice((prev: string) => (prev ? prev : deviceKeys[0] || ""));
       }
     });
     return () => unsubscribe();
@@ -32,7 +33,14 @@ export const DeviceProvider: React.FC<DeviceProviderProps> = ({ children }) => {
 
   return (
     <DeviceContext.Provider
-      value={{ devices, selectedDevice, setDevices, setSelectedDevice }}
+      value={{ 
+        devices, 
+        selectedDevice, 
+        selectedLocation,
+        setDevices, 
+        setSelectedDevice,
+        setSelectedLocation
+      }}
     >
       {children}
     </DeviceContext.Provider>
@@ -40,9 +48,9 @@ export const DeviceProvider: React.FC<DeviceProviderProps> = ({ children }) => {
 };
 
 export const useDevice = () => {
-  const context = React.useContext(DeviceContext);
+  const context = useContext(DeviceContext);
   if (!context) {
     throw new Error("useDevice must be used within a DeviceProvider");
   }
   return context;
-};
+}; 
