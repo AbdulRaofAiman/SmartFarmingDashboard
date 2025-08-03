@@ -17,30 +17,30 @@ import { database } from "../config/firebase";
 import { useDevice } from "./DeviceProvider";
 
 export function Dashboard() {
-  const { selectedDevice, devices, setSelectedDevice, selectedLocation, setSelectedLocation } = useDevice();
+  const { selectedDevice, devices, setSelectedDevice, selectedPlace, setSelectedPlace } = useDevice();
   const [sensorData, setSensorData] = useState({
     temperature: 0,
     humidity: 0,
     moisture: 0,
   });
-  const [locationInput, setLocationInput] = useState(selectedLocation || "");
+  const [placeInput, setPlaceInput] = useState(selectedPlace || "");
 
   const handleDeviceChange = (event: SelectChangeEvent) => {
     setSelectedDevice(event.target.value);
   };
 
-  const handleLocationInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setLocationInput(event.target.value);
+  const handlePlaceInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPlaceInput(event.target.value);
   };
 
-  const handleSaveLocation = () => {
-    if (locationInput.trim()) {
-      setSelectedLocation(locationInput.trim());
+  const handleSavePlace = () => {
+    if (placeInput.trim()) {
+      setSelectedPlace(placeInput.trim());
       
-      // Save location to Firebase
+      // Save place to Firebase
       if (selectedDevice) {
-        const locationRef = ref(database, `${selectedDevice}/location`);
-        set(locationRef, locationInput.trim());
+        const placeRef = ref(database, `${selectedDevice}/place`);
+        set(placeRef, placeInput.trim());
       }
     }
   };
@@ -49,7 +49,7 @@ export function Dashboard() {
     if (!selectedDevice) return;
 
     const dataRef = ref(database, `${selectedDevice}/data`);
-    const locationRef = ref(database, `${selectedDevice}/location`);
+    const placeRef = ref(database, `${selectedDevice}/place`);
     
     // Listen for sensor data
     const dataUnsubscribe = onValue(
@@ -74,26 +74,26 @@ export function Dashboard() {
       }
     );
 
-    // Listen for location data
-    const locationUnsubscribe = onValue(
-      locationRef,
+    // Listen for place data
+    const placeUnsubscribe = onValue(
+      placeRef,
       (snapshot) => {
-        const location = snapshot.val();
-        if (location) {
-          setSelectedLocation(location);
-          setLocationInput(location);
+        const place = snapshot.val();
+        if (place) {
+          setSelectedPlace(place);
+          setPlaceInput(place);
         }
       },
       (error) => {
-        console.error("Error fetching location data:", error);
+        console.error("Error fetching place data:", error);
       }
     );
 
     return () => {
       dataUnsubscribe();
-      locationUnsubscribe();
+      placeUnsubscribe();
     };
-  }, [selectedDevice, setSelectedLocation]);
+  }, [selectedDevice, setSelectedPlace]);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
@@ -110,7 +110,7 @@ export function Dashboard() {
           Real-time sensor data from your IoT devices
         </Typography>
 
-        {/* Device and Location Selection */}
+        {/* Device and Place Selection */}
         <Paper elevation={2} sx={{ p: 3, mb: 4, maxWidth: 600, mx: 'auto' }}>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <FormControl sx={{ minWidth: 200 }}>
@@ -132,18 +132,18 @@ export function Dashboard() {
 
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
               <TextField
-                label="Location"
-                value={locationInput}
-                onChange={handleLocationInputChange}
-                placeholder="Enter device location"
+                label="Place"
+                value={placeInput}
+                onChange={handlePlaceInputChange}
+                placeholder="Enter device place"
                 size="small"
                 sx={{ minWidth: 200 }}
               />
               <Button 
                 variant="contained" 
-                onClick={handleSaveLocation}
+                onClick={handleSavePlace}
                 size="small"
-                disabled={!locationInput.trim()}
+                disabled={!placeInput.trim()}
               >
                 Save
               </Button>
@@ -153,7 +153,7 @@ export function Dashboard() {
           {selectedDevice && (
             <Typography variant="body2" sx={{ mt: 2, textAlign: 'center', color: 'text.secondary' }}>
               Currently viewing: {selectedDevice.replace('device_', 'Device ')}
-              {selectedLocation && ` at ${selectedLocation}`}
+              {selectedPlace && ` at ${selectedPlace}`}
             </Typography>
           )}
         </Paper>

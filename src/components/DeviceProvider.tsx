@@ -14,7 +14,7 @@ interface DeviceProviderProps {
 export const DeviceProvider: React.FC<DeviceProviderProps> = ({ children }) => {
   const [devices, setDevices] = useState<string[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string>("");
-  const [selectedLocation, setSelectedLocation] = useState<string>("");
+  const [selectedPlace, setSelectedPlace] = useState<string>("");
 
   useEffect(() => {
     const rootRef = ref(database, "/");
@@ -36,10 +36,10 @@ export const DeviceProvider: React.FC<DeviceProviderProps> = ({ children }) => {
       value={{ 
         devices, 
         selectedDevice, 
-        selectedLocation,
+        selectedPlace,
         setDevices, 
         setSelectedDevice,
-        setSelectedLocation
+        setSelectedPlace
       }}
     >
       {children}
