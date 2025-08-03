@@ -98,6 +98,34 @@ export function Dashboard() {
     };
   }, [devices]);
 
+  // Continuous timer to check online status every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDeviceStatus(prev => {
+        const updatedStatus = { ...prev };
+        let hasChanges = false;
+
+        Object.keys(updatedStatus).forEach(device => {
+          const currentStatus = updatedStatus[device];
+          if (currentStatus && currentStatus.lastUpdate !== 'Unknown') {
+            const isOnline = checkDeviceOnline(currentStatus.lastUpdate);
+            if (isOnline !== currentStatus.online) {
+              updatedStatus[device] = {
+                ...currentStatus,
+                online: isOnline
+              };
+              hasChanges = true;
+            }
+          }
+        });
+
+        return hasChanges ? updatedStatus : prev;
+      });
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (!selectedDevice) return;
 
