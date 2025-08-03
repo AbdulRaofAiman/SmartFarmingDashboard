@@ -4,7 +4,6 @@ import {
   Container,
   Typography,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   SelectChangeEvent,
@@ -165,67 +164,88 @@ export function Dashboard() {
         </Typography>
 
         {/* Device and Place Selection */}
-        <Paper elevation={2} sx={{ p: 3, mb: 4, maxWidth: 600, mx: 'auto' }}>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel id="device-select-label">Select Device</InputLabel>
-              <Select
-                labelId="device-select-label"
-                id="device-select"
-                value={selectedDevice}
-                label="Select Device"
-                onChange={handleDeviceChange}
-              >
-                {devices.map((device) => (
-                  <MenuItem key={device} value={device}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <span>{device.replace('device_', 'Device ')}</span>
-                      {deviceStatus[device] && (
-                        <Chip
-                          label={deviceStatus[device].online ? "Online" : "Offline"}
-                          color={deviceStatus[device].online ? "success" : "error"}
-                          size="small"
-                          variant="outlined"
-                        />
-                      )}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+        <Paper elevation={2} sx={{ p: 3, mb: 4, maxWidth: 800, mx: 'auto' }}>
+          <Typography variant="h6" sx={{ mb: 3, textAlign: 'center', fontWeight: 600 }}>
+            Device Configuration
+          </Typography>
+          
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Device Selection Row */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                Select Device
+              </Typography>
+              <FormControl fullWidth>
+                <Select
+                  value={selectedDevice}
+                  onChange={handleDeviceChange}
+                  displayEmpty
+                  sx={{ minHeight: 48 }}
+                >
+                  {devices.map((device) => (
+                    <MenuItem key={device} value={device}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                        <span>{device.replace('device_', 'Device ')}</span>
+                        {deviceStatus[device] && (
+                          <Chip
+                            label={deviceStatus[device].online ? "Online" : "Offline"}
+                            color={deviceStatus[device].online ? "success" : "error"}
+                            size="small"
+                            variant="outlined"
+                            sx={{ ml: 'auto' }}
+                          />
+                        )}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
 
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
-              <TextField
-                label="Place"
-                value={placeInput}
-                onChange={handlePlaceInputChange}
-                placeholder="Enter device place"
-                size="small"
-                sx={{ minWidth: 200 }}
-              />
-              <Button 
-                variant="contained" 
-                onClick={handleSavePlace}
-                size="small"
-                disabled={!placeInput.trim()}
-              >
-                Save
-              </Button>
+            {/* Place Input Row */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                Device Place
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
+                <TextField
+                  fullWidth
+                  value={placeInput}
+                  onChange={handlePlaceInputChange}
+                  placeholder="Enter device place (e.g., Field A, Greenhouse 1)"
+                  size="medium"
+                  sx={{ flexGrow: 1 }}
+                />
+                <Button 
+                  variant="contained" 
+                  onClick={handleSavePlace}
+                  disabled={!placeInput.trim()}
+                  sx={{ 
+                    minWidth: 100,
+                    height: 48,
+                    fontWeight: 600
+                  }}
+                >
+                  Save Place
+                </Button>
+              </Box>
             </Box>
           </Box>
           
+          {/* Device Status Display */}
           {selectedDevice && (
-            <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                Currently viewing: {selectedDevice.replace('device_', 'Device ')}
+            <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.200' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1, fontWeight: 500 }}>
+                Current Device: {selectedDevice.replace('device_', 'Device ')}
                 {selectedPlace && ` at ${selectedPlace}`}
               </Typography>
               {deviceStatus[selectedDevice] && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Chip
                     label={deviceStatus[selectedDevice].online ? "Online" : "Offline"}
                     color={deviceStatus[selectedDevice].online ? "success" : "error"}
                     size="small"
+                    sx={{ fontWeight: 600 }}
                   />
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                     Last update: {deviceStatus[selectedDevice].lastUpdate}
