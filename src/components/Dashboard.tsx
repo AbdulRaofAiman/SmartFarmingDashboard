@@ -1,20 +1,34 @@
 import React, { useState, useEffect } from "react";
-import { Box, Container, Typography } from "@mui/material";
+import {
+  Box,
+  Container,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
+  Paper
+} from "@mui/material";
 import { ref, onValue } from "firebase/database";
 import { database } from "../config/firebase";
 import { useDevice } from "./DeviceProvider";
 
 export function Dashboard() {
-  const { selectedDevice } = useDevice();
+  const { selectedDevice, devices, setSelectedDevice } = useDevice();
   const [sensorData, setSensorData] = useState({
     temperature: 0,
     humidity: 0,
     moisture: 0,
   });
 
+  const handleDeviceChange = (event: SelectChangeEvent) => {
+    setSelectedDevice(event.target.value);
+  };
+
   useEffect(() => {
     if (!selectedDevice) return;
-    
+
     const dataRef = ref(database, `${selectedDevice}/data`);
     const unsubscribe = onValue(
       dataRef,
@@ -55,6 +69,31 @@ export function Dashboard() {
         <Typography variant="body1" align="center" sx={{ mb: 4 }}>
           Real-time sensor data from your IoT devices
         </Typography>
+
+        {/* Device Selection */}
+        <Paper elevation={2} sx={{ p: 3, mb: 4, maxWidth: 400, mx: 'auto' }}>
+          <FormControl fullWidth>
+            <InputLabel id="device-select-label">Select Device</InputLabel>
+            <Select
+              labelId="device-select-label"
+              id="device-select"
+              value={selectedDevice}
+              label="Select Device"
+              onChange={handleDeviceChange}
+            >
+              {devices.map((device) => (
+                <MenuItem key={device} value={device}>
+                  {device.replace('device_', 'Device ')}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {selectedDevice && (
+            <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', color: 'text.secondary' }}>
+              Currently viewing: {selectedDevice.replace('device_', 'Device ')}
+            </Typography>
+          )}
+        </Paper>
 
         <Box
           sx={{
@@ -104,6 +143,17 @@ export function Dashboard() {
             <Typography variant="h4">{sensorData.temperature}°C</Typography>
           </Box>
         </Box>
+
+        {!selectedDevice && devices.length === 0 && (
+          <Paper elevation={3} sx={{ p: 3, mt: 4, textAlign: 'center', bgcolor: 'warning.light' }}>
+            <Typography variant="h6" color="warning.dark">
+              No devices found
+            </Typography>
+            <Typography variant="body2" color="warning.dark">
+              Please ensure your IoT devices are connected and sending data to Firebase.
+            </Typography>
+          </Paper>
+        )}
       </Container>
     </Box>
   );

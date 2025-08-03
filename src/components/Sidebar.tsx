@@ -13,6 +13,11 @@ import {
   Box,
   Typography,
   Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
 } from "@mui/material";
 import {
   Dashboard as DashboardIcon,
@@ -24,6 +29,7 @@ import {
   Opacity as PumpIcon,
   PowerSettingsNew as PumpSidebarIcon,
 } from "@mui/icons-material";
+import { useDevice } from "./DeviceProvider";
 
 const drawerWidth = 240;
 
@@ -40,6 +46,11 @@ const menuItems = [
 const Sidebar: React.FC = () => {
   const navigate = useNavigateHook();
   const location = useLocationHook();
+  const { selectedDevice, devices, setSelectedDevice } = useDevice();
+
+  const handleDeviceChange = (event: SelectChangeEvent) => {
+    setSelectedDevice(event.target.value);
+  };
 
   return (
     <Drawer
@@ -60,6 +71,59 @@ const Sidebar: React.FC = () => {
           IoT Farm Monitoring
         </Typography>
       </Box>
+      <Divider sx={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }} />
+      
+      {/* Device Selection */}
+      <Box sx={{ p: 2 }}>
+        <FormControl fullWidth size="small">
+          <InputLabel 
+            id="sidebar-device-select-label" 
+            sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+          >
+            Select Device
+          </InputLabel>
+          <Select
+            labelId="sidebar-device-select-label"
+            id="sidebar-device-select"
+            value={selectedDevice}
+            label="Select Device"
+            onChange={handleDeviceChange}
+            sx={{
+              color: 'white',
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+              },
+              '& .MuiSvgIcon-root': {
+                color: 'white',
+              },
+            }}
+          >
+            {devices.map((device) => (
+              <MenuItem key={device} value={device}>
+                {device.replace('device_', 'Device ')}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        {selectedDevice && (
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              mt: 1, 
+              display: 'block', 
+              textAlign: 'center', 
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '0.75rem'
+            }}
+          >
+            {selectedDevice.replace('device_', 'Device ')}
+          </Typography>
+        )}
+      </Box>
+      
       <Divider sx={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }} />
       <List>
         {menuItems.map((item) => (
