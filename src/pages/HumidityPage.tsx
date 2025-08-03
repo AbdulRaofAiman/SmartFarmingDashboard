@@ -5,6 +5,7 @@ import { ref, onValue } from "firebase/database";
 import { database } from "../config/firebase";
 import { useState, useEffect } from "react";
 import { useDevice } from "../components/DeviceProvider";
+import "../config/chartConfig"; // Import Chart.js configuration
 
 interface SensorData {
   timestamp: number;
@@ -161,7 +162,11 @@ const HumidityPage: React.FC = () => {
       </Box>
 
       <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
-        <Line data={chartData} options={chartOptions} />
+        <Line 
+          key={`humidity-${selectedDevice}`}
+          data={chartData} 
+          options={chartOptions} 
+        />
       </Paper>
 
       {error && (

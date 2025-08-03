@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Box, CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import "./config/chartConfig"; // Import Chart.js configuration globally
 import Sidebar from "./components/Sidebar";
 import DashboardPage from "./pages/DashboardPage";
 import HumidityPage from "./pages/HumidityPage";

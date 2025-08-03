@@ -4,6 +4,7 @@ import { Line } from "react-chartjs-2";
 import { ref, onValue } from "firebase/database";
 import { database } from "../config/firebase";
 import { useDevice } from "../components/DeviceProvider";
+import "../config/chartConfig"; // Import Chart.js configuration
 
 interface SensorData {
   timestamp: number;
@@ -170,7 +171,11 @@ function TemperaturePage() {
       </Box>
 
       <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
-        <Line data={chartData} options={chartOptions} />
+        <Line 
+          key={`temperature-${selectedDevice}`}
+          data={chartData} 
+          options={chartOptions} 
+        />
       </Paper>
 
       {error && (
