@@ -40,14 +40,14 @@ Added place input functionality to the Dashboard page, allowing users to freely 
 
 Place information is stored in Firebase at the following path:
 ```
-{device_id}/place
+{device_id}/info/place
 ```
 
 Examples:
 ```
-device_001/place: "Field A"
-device_002/place: "Greenhouse 1"
-device_003/place: "Backyard Garden"
+device_001/info/place: "Field A"
+device_002/info/place: "Greenhouse 1"
+device_003/info/place: "Backyard Garden"
 ```
 
 ### Files Modified

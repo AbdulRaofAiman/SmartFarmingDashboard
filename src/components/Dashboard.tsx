@@ -39,7 +39,7 @@ export function Dashboard() {
       
       // Save place to Firebase
       if (selectedDevice) {
-        const placeRef = ref(database, `${selectedDevice}/place`);
+        const placeRef = ref(database, `${selectedDevice}/info/place`);
         set(placeRef, placeInput.trim());
       }
     }
@@ -49,7 +49,7 @@ export function Dashboard() {
     if (!selectedDevice) return;
 
     const dataRef = ref(database, `${selectedDevice}/data`);
-    const placeRef = ref(database, `${selectedDevice}/place`);
+    const placeRef = ref(database, `${selectedDevice}/info/place`);
     
     // Listen for sensor data
     const dataUnsubscribe = onValue(
