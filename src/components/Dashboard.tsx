@@ -10,7 +10,8 @@ import {
   SelectChangeEvent,
   Paper,
   TextField,
-  Button
+  Button,
+  Chip
 } from "@mui/material";
 import { ref, onValue, set } from "firebase/database";
 import { database } from "../config/firebase";
@@ -24,6 +25,7 @@ export function Dashboard() {
     moisture: 0,
   });
   const [placeInput, setPlaceInput] = useState(selectedPlace || "");
+  const [deviceStatus, setDeviceStatus] = useState<{[key: string]: {online: boolean, lastUpdate: string}}>({});
 
   const handleDeviceChange = (event: SelectChangeEvent) => {
     setSelectedDevice(event.target.value);
@@ -44,6 +46,58 @@ export function Dashboard() {
       }
     }
   };
+
+  // Function to check if device is online based on formatted_time
+  const checkDeviceOnline = (formattedTime: string): boolean => {
+    try {
+      // Parse the formatted time (HH:MM:SS)
+      const [hours, minutes, seconds] = formattedTime.split(':').map(Number);
+      const now = new Date();
+      const deviceTime = new Date();
+      deviceTime.setHours(hours, minutes, seconds, 0);
+      
+      // Calculate time difference in seconds
+      const timeDiff = Math.abs(now.getTime() - deviceTime.getTime()) / 1000;
+      
+      // If device time is within 3 seconds of current time, consider it online
+      return timeDiff <= 3;
+    } catch (error) {
+      console.error('Error parsing formatted time:', error);
+      return false;
+    }
+  };
+
+  // Monitor all devices for online status
+  useEffect(() => {
+    const deviceStatusUnsubscribes: (() => void)[] = [];
+
+    devices.forEach((device) => {
+      const dataRef = ref(database, `${device}/data`);
+      const unsubscribe = onValue(dataRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const entries = Object.values(data);
+          if (entries.length > 0) {
+            const latestEntry = entries[entries.length - 1] as any;
+            const isOnline = checkDeviceOnline(latestEntry.formatted_time || '');
+            
+            setDeviceStatus(prev => ({
+              ...prev,
+              [device]: {
+                online: isOnline,
+                lastUpdate: latestEntry.formatted_time || 'Unknown'
+              }
+            }));
+          }
+        }
+      });
+      deviceStatusUnsubscribes.push(unsubscribe);
+    });
+
+    return () => {
+      deviceStatusUnsubscribes.forEach(unsubscribe => unsubscribe());
+    };
+  }, [devices]);
 
   useEffect(() => {
     if (!selectedDevice) return;
@@ -124,7 +178,17 @@ export function Dashboard() {
               >
                 {devices.map((device) => (
                   <MenuItem key={device} value={device}>
-                    {device.replace('device_', 'Device ')}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <span>{device.replace('device_', 'Device ')}</span>
+                      {deviceStatus[device] && (
+                        <Chip
+                          label={deviceStatus[device].online ? "Online" : "Offline"}
+                          color={deviceStatus[device].online ? "success" : "error"}
+                          size="small"
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
                   </MenuItem>
                 ))}
               </Select>
@@ -151,10 +215,24 @@ export function Dashboard() {
           </Box>
           
           {selectedDevice && (
-            <Typography variant="body2" sx={{ mt: 2, textAlign: 'center', color: 'text.secondary' }}>
-              Currently viewing: {selectedDevice.replace('device_', 'Device ')}
-              {selectedPlace && ` at ${selectedPlace}`}
-            </Typography>
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                Currently viewing: {selectedDevice.replace('device_', 'Device ')}
+                {selectedPlace && ` at ${selectedPlace}`}
+              </Typography>
+              {deviceStatus[selectedDevice] && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, alignItems: 'center' }}>
+                  <Chip
+                    label={deviceStatus[selectedDevice].online ? "Online" : "Offline"}
+                    color={deviceStatus[selectedDevice].online ? "success" : "error"}
+                    size="small"
+                  />
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Last update: {deviceStatus[selectedDevice].lastUpdate}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
           )}
         </Paper>
 
